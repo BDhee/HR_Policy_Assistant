@@ -1,0 +1,3 @@
+Python is a programming language.
+Python was created by Guido van Rossum.
+Python is widely used in AI and machine learning.
