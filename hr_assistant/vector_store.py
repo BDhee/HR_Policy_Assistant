@@ -1,34 +1,57 @@
-"""this stores the vector embeddings for the given text using embedding model"""
+"""Step 4: store chunk embeddings in Qdrant Cloud so we can search them later."""
 
-import os
-from langchain.vectorstores import FAISS
-from hr_assistant import config 
+
+from langchain_qdrant import QdrantVectorStore
+from qdrant_client import QdrantClient
+
+from hr_assistant import config
 from hr_assistant.embeddings import get_embeddings_model
+from hr_assistant.logger import get_logger
+
+logger = get_logger(__name__)
+
+
+# build_vector_store
 
 def build_vector_store(chunks):
-    """ embeded every chunk and build a searchable FAISS index using the embeddings model
-    """
+    """Embed every chunk and upload it into a Qdrant Cloud collection."""
+    logger.info(
+        "Embedding %d chunk(s) and uploading to Qdrant collection '%s'...",
+        len(chunks),
+        config.QDRANT_COLLECTION_NAME,
+    )
     embeddings_model = get_embeddings_model()
-    return FAISS.from_documents(chunks, embeddings_model)
+    vector_store = QdrantVectorStore.from_documents(
+        chunks,
+        embedding=embeddings_model,
+        url=config.QDRANT_URL,
+        api_key=config.QDRANT_API_KEY,
+        collection_name=config.QDRANT_COLLECTION_NAME,
+    )
+    logger.info("Uploaded to Qdrant collection '%s'", config.QDRANT_COLLECTION_NAME)
+    return vector_store
 
 
-## Save vector store locally
-def save_vector_store(vector_store, path: str = config.VECTOR_STORE_PATH) -> None:
-    """save the vector store locally to the given path. The vector store is saved in the local storage. The path is passed as an argument to the function. The default path is set to the VECTOR_STORE_PATH in the config.py file. 
-    The vector store is saved in the local storage using the save_local method of the FAISS class.""" 
-    vector_store.save_local(path)
-
-def load_vectore_store(path:str = config.VECTOR_STORE_PATH):
-    """load the vector store from the local storage. The vector store is loaded from the local storage using the load_local method of the FAISS class. The path is passed as an argument to the function. The default path is set to the VECTOR_STORE_PATH in the config.py file."""
+def load_vector_store():
+    """Connect to a Qdrant Cloud collection that was already built before."""
+    logger.info("Connecting to existing Qdrant collection '%s'", config.QDRANT_COLLECTION_NAME)
     embeddings_model = get_embeddings_model()
-    return FAISS.load_local(path, embeddings_model, allow_dangerous_deserialization=True)
+    return QdrantVectorStore.from_existing_collection(
+        embedding=embeddings_model,
+        url=config.QDRANT_URL,
+        api_key=config.QDRANT_API_KEY,
+        collection_name=config.QDRANT_COLLECTION_NAME,
+    )
 
 
-def vector_store_exists(path:str = config.VECTOR_STORE_PATH) -> bool:
-    """check if the vector store exists in the local storage. The vector store is checked in the local storage using the os.path.exists method. The path is passed as an argument to the function. The default path is set to the VECTOR_STORE_PATH in the config.py file."""
-    return os.path.exists(os.join(path, "index,faiss"))
+def vector_store_exists() -> bool:
+    """Check if the Qdrant Cloud collection already exists."""
+    client = QdrantClient(url=config.QDRANT_URL, api_key=config.QDRANT_API_KEY)
+    return client.collection_exists(config.QDRANT_COLLECTION_NAME)
 
-def get_retriever(vectore_store, k:int = config.top_k_results):
-    """retrieve the vector store from the local storage. The vector store is retrieved from the local storage using the retrieve method of the FAISS class. The query is passed as an argument to the function. The top_k is passed as an argument to the function. The default top_k is set to the top_k_results in the config.py file."""
-    return vectore_store.as_retriever(search_kwargs={"k": k})
 
+def get_retriever(vector_store, k: int = config.TOP_K_RESULTS):
+    """Turn a vector store into a retriever
+    that returns the top-k matching chunks."""
+    logger.info("Creating retriever with top_k=%d", k)
+    return vector_store.as_retriever(search_kwargs={"k": k})

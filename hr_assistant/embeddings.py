@@ -1,11 +1,16 @@
-""" this will generate the vector embeddings for the given text using embedding model"""
+"""Step 3: turn text into numbers (vectors) using Jina."""
+
+
 from langchain_community.embeddings import JinaEmbeddings
-from hr_assistant import config
+
+from hr_assistant import config 
+from hr_assistant.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def get_embeddings_model():
-    """generates the vector embeddings and reads the API key from the environment variable. The API key is used to authenticate the request to the embedding model. The embedding model is used to generate the vector embeddings for the given text. The vector embeddings are used to find the most similar documents to the given text."""
-    return JinaEmbeddings(model_name= config.EMBEDDINGS_MODEL_NAME)
-    #return embeddings.embed_query(text)
-
-print("Embeddings: Vector embeddings have been generated successfully using the embedding model: ", config.EMBEDDINGS_MODEL_NAME)       
+    """Return a Jina embeddings model. 
+    Reads JINA_API_KEY from the environment."""
+    logger.info("Initializing embeddings model '%s'", config.EMBEDDING_MODEL_NAME)
+    return JinaEmbeddings(model_name=config.EMBEDDING_MODEL_NAME)

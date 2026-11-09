@@ -1,10 +1,19 @@
-"""Step 7: Create the Agent"""
+"""Step 7: build the agent that ties the LLM and the search tool together."""
 
-from langchain.agents import CreateAgent
+
+from langchain.agents import create_agent
 
 from hr_assistant import config
+from hr_assistant.logger import get_logger
+
+logger = get_logger(__name__)
 
 def create_hr_agent(llm, tools):
-    """returns the agent that reads the HR policy document and generates the response for the given query. The agent is created using the LLM model and the search tool. The search tool is used to search the HR policy documents and retrieve the relevant chunks. The retrieved chunks are used to generate the response for the given query."""
-    return CreateAgent(model= llm,tools = tools,  
-                           system_message = config.SYSTEM_MESSAGE,)
+    """Return a LangChain agent that can
+    call our tools to answer questions."""
+    logger.info("Creating HR agent with %d tool(s)", len(tools))
+    agent = create_agent(model=llm,
+                        tools=tools,
+                        system_prompt=config.SYSTEM_PROMPT)
+    logger.info("HR agent ready")
+    return agent

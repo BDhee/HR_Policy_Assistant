@@ -1,7 +1,13 @@
-"""This file has the LLM model"""
+"""Step 6: connect to the LLM (the "brain" of the assistant)."""
 
-from langchain_groq import ChatGroq   
-from hr_assistant import config
+
+from hr_assistant.gateway import get_gateway_llm
+
+from hr_assistant.logger import get_logger
+
+logger = get_logger(__name__)
+
 def get_llm():
-    """Returns the Groq models and reads the API  key from the environment variable. The API key is used to authenticate the request to the LLM model. The LLM model is used to generate the response for the given query. The response is generated using the LLM model and the search results from the vector store."""
-    return ChatGroq(model_name=config.LLM_MODEL_NAME, temperature=0.5)
+    """Return a Groq chat model. Reads GROQ_API_KEY from the environment."""
+    logger.info("Initializing LLM via Portkey")
+    return get_gateway_llm()
